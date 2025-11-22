@@ -6,6 +6,8 @@ import { MdOutlineMail } from "react-icons/md";
 import { FaUser } from "react-icons/fa";
 import { MdPassword, MdDriveFileRenameOutline } from "react-icons/md";
 import PSvg from "../../../components/svgs/p";
+import { QueryClient, useMutation } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 
 const SignUpPage = () => {
   const [formData, setFormData] = useState({
@@ -15,16 +17,40 @@ const SignUpPage = () => {
     password: "",
   });
 
+  const {mutate,isError,isPending,error}=useMutation({
+    mutationFn:async({email,username,fullName,password})=>{
+    try {
+      const res=await fetch("/api/auth/signup",{
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+        },
+        body:JSON.stringify({email,username,fullName,password})
+      });
+      const data=await res.json();
+       if(!res.ok) throw new Error(data.error || "Something went wrong");
+      
+      console.log(data)
+      return data;
+    } catch (error) {
+      console.error(error);
+     throw new Error(error.message);
+    }
+    },onSuccess:()=>{
+      toast.success("Account created successfully");
+      
+    },
+    });
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log(formData);
+    mutate(formData);
   };
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const isError = false;
 
   return (
     <div className="max-w-screen-xl mx-auto flex h-screen px-10">
@@ -109,10 +135,10 @@ const SignUpPage = () => {
           </label>
 
           <button className="btn rounded-full bg-gradient-to-r from-blue-500 to-purple-600 border-none text-white font-semibold">
-            Sign up
+            {isPending ?"Loading...":"Sign up"}
           </button>
 
-          {isError && <p className="text-red-500 text-sm">Something went wrong</p>}
+          {isError && <p className="text-red-500 text-sm">{error.message}</p>}
         </form>
 
         <div className="flex flex-col lg:w-2/3 w-full gap-2 mt-6 text-center">

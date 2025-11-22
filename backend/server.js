@@ -2,6 +2,7 @@
  import express from 'express'; 
  import cookieParser from 'cookie-parser';
  import "dotenv/config.js";
+ import cors from 'cors';
 
  import authRoutes from './routes/auth.route.js';
  import userRoutes from './routes/user.route.js';
@@ -19,6 +20,10 @@ cloudinary.config({
  const PORT=process.env.PORT || 5000;
  const app = express();
 
+ app.use(cors({
+  origin: "http://localhost:3000",
+  credentials: true
+}));
  app.use(express.urlencoded({extended:true}));
  app.use(express.json());
  app.use(cookieParser());
