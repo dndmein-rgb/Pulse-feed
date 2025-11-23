@@ -16,72 +16,87 @@ export const getUserProfile=async(req,res)=>{
         console.log("Error in getUserProfile:",error);
     }
 }
-export const followUnfollowUser=async(req,res)=>{
+export const followUnfollowUser = async (req, res) => {
     try {
-        const {id}=req.params;
-        const userToModify=await User.findById(id);
-        const currentUser=await User.findById(req.user._id)
+        const { id } = req.params;
 
-        if(id===req.user._id.toString())
-            return res.status(400).json({error:"You can't follow/unfollow yourself"});
-
-        if(!userToModify||!currentUser)
-            return res.status(400).json({error:"User not found"})
-        const isFollowing=currentUser.following.includes(id);
-        if(isFollowing){
-            //unfollowUser
-            await User.findByIdAndUpdate(id,{$pull:{followers:req.user._id}})
-            await User.findByIdAndUpdate(req.user._id,{$pull :{following:id}})
-
-            res.status(200).json({ message: "User unfollowed successfully" });
-        }else{
-            //follow
-            await User.findByIdAndUpdate(id,{$push:{followers:req.user._id}});
-            await User.findByIdAndUpdate(req.user._id,{$push:{following:id}});
-
-            //send notification to user
-            const newNotification =new Notification({
-                type:"follow",
-                from:req.user._id,
-                to:userToModify._id,
-            })
-            await newNotification.save({
-            })
-
-            res.status(200).json({ message: "User followed successfully" });
+        if (!id) {
+            return res.status(400).json({ error: "User ID is required" });
         }
 
+        const currentUserId = req.user?._id;
+        if (!currentUserId) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        if (id === currentUserId.toString()) {
+            return res.status(400).json({ error: "You can't follow/unfollow yourself" });
+        }
+
+        const userToModify = await User.findById(id);
+        const currentUser = await User.findById(currentUserId);
+
+        if (!userToModify || !currentUser) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        const isFollowing = currentUser.following.includes(id);
+
+        if (isFollowing) {
+            // unfollow
+            await User.findByIdAndUpdate(id, { $pull: { followers: currentUserId } });
+            await User.findByIdAndUpdate(currentUserId, { $pull: { following: id } });
+
+            return res.status(200).json({ message: "User unfollowed successfully" });
+        } else {
+            // follow
+            await User.findByIdAndUpdate(id, { $push: { followers: currentUserId } });
+            await User.findByIdAndUpdate(currentUserId, { $push: { following: id } });
+
+            // notification
+            const newNotification = new Notification({
+                type: "follow",
+                from: currentUserId,
+                to: userToModify._id
+            });
+            await newNotification.save();
+
+            return res.status(200).json({ message: "User followed successfully" });
+        }
 
     } catch (error) {
-         res.status(500).json({error:error.message});
-        console.log("Error in followUnfollowUser:",error);
+        console.log("Error in followUnfollowUser:", error);
+        return res.status(500).json({ error: error.message });
     }
-}
-export const getSuggestedUsers=async(req,res)=>{
-    try {
-        const userId=req.user._id;
-        const usersFollowedByme=await User.findById(userId).select('following');
+};
 
-        const user=await User.aggregate([
-            {$match:{
-                _id:{$ne:userId}
-            }
-        },
-        {$sample:{size:10}},
-        ])
-        const filteredUsers=user.filter((user)=>!usersFollowedByme.following.includes(user._id));
-        const suggestedUsers=filteredUsers.slice(0,4);
+export const getSuggestedUsers = async (req, res) => {
+	try {
+		const userId = req.user._id;
 
-        suggestedUsers.forEach((user)=>(user.password=null));
+		const usersFollowedByMe = await User.findById(userId).select("following");
 
-        res.status(200).json(suggestedUsers);
-        
-    } catch (error) {
-        console.log("Error in getSuggestedUsers:",error);
-        res.status(500).json({error:error.message});
-    }
-}
+		const users = await User.aggregate([
+			{
+				$match: {
+					_id: { $ne: userId },
+				},
+			},
+			{ $sample: { size: 10 } },
+		]);
 
+		// 1,2,3,4,5,6,
+		const filteredUsers = users.filter((user) => !usersFollowedByMe.following.includes(user._id));
+		const suggestedUsers = filteredUsers.slice(0, 4);
+
+		suggestedUsers.forEach((user) => (user.password = null));
+
+		res.status(200).json(suggestedUsers);
+	} catch (error) {
+		console.log("Error in getSuggestedUsers: ", error.message);
+		res.status(500).json({ error: error.message });
+	}
+};
 export const updateUser=async(req,res)=>{
 	const { fullName, email, username, currentPassword, newPassword, bio, link } = req.body;
 	let { profileImg, coverImg } = req.body;
