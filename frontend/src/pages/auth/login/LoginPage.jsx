@@ -1,14 +1,14 @@
 import React,{ useState } from "react";
 import { Link } from "react-router";
 
-import XSvg from "../../../components/svgs/X";
+import XSvg from "../../../components/svgs/X.jsx";
 
 import { MdOutlineMail } from "react-icons/md";
 import { MdPassword } from "react-icons/md";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import PSvg from "../../../components/svgs/p";
+import PSvg from "../../../components/svgs/P.jsx";
 
 const LoginPage = () => {
 	const [formData, setFormData] = useState({
