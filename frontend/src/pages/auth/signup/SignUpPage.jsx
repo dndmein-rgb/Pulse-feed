@@ -1,11 +1,10 @@
 import { Link } from "react-router";
 import React, { useState } from "react";
-import XSvg from "../../../components/svgs/X.jsx";
+import { XSvg, PSvg } from "../../../components/svgs";
 
 import { MdOutlineMail } from "react-icons/md";
 import { FaUser } from "react-icons/fa";
 import { MdPassword, MdDriveFileRenameOutline } from "react-icons/md";
-import PSvg from "../../../components/svgs/P.jsx";
 import {  useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 

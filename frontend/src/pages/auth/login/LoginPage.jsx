@@ -1,15 +1,13 @@
 import React,{ useState } from "react";
 import { Link } from "react-router";
 
-import XSvg from "../../../components/svgs/X.jsx";
+import { XSvg, PSvg } from "../../../components/svgs";
 
 import { MdOutlineMail } from "react-icons/md";
 import { MdPassword } from "react-icons/md";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import PSvg from "../../../components/svgs/P.jsx";
-
 const LoginPage = () => {
 	const [formData, setFormData] = useState({
 		username: "",
@@ -63,7 +61,7 @@ const LoginPage = () => {
 	return (
 		<div className='max-w-screen-xl mx-auto flex h-screen'>
 			<div className='flex-1 hidden lg:flex items-center  justify-center'>
-				<XSvg className='lg:w-2/3 fill-white' />
+					<XSvg className='lg:w-2/3 fill-white' />
 			</div>
 			<div className='flex-1 flex flex-col justify-center items-center'>
 				<form className='flex gap-4 flex-col' onSubmit={handleSubmit}>
