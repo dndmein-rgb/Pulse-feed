@@ -3,13 +3,17 @@ import PostSkeleton from "../skeletons/PostSkeleton.jsx";
 import React, { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-const Posts = ({feedType}) => {
+const Posts = ({feedType,username,userId}) => {
 	const getPostEndpoint = () => {
 		switch(feedType){
 			case "forYou":
 				return "/api/posts/all";
 			case "following":
 				return "/api/posts/following";
+				case "profile":
+				return `/api/posts/profile/${username}`;
+				case "likes":
+				return `/api/posts/likes/${userId}`;
 				default:
 				return "/api/posts/all";
 		}
