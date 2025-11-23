@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import React, { useState } from "react";
-import XSvg from "../../../components/svgs/X.jsx";
+import XSvg from "../../../components/svgs/X";
 
 import { MdOutlineMail } from "react-icons/md";
 import { FaUser } from "react-icons/fa";
