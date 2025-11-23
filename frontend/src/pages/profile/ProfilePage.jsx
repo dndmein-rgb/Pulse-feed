@@ -11,8 +11,10 @@ import { FaArrowLeft } from "react-icons/fa6";
 import { IoCalendarOutline } from "react-icons/io5";
 import { FaLink } from "react-icons/fa";
 import { MdEdit } from "react-icons/md";
-import { useQuery } from "@tanstack/react-query";
+import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { formatMemberSinceDate } from "../../utils/date";
+import  useFollow from "../../hooks/useFollow";
+import toast from "react-hot-toast";
 
 const ProfilePage = () => {
 	const [coverImg, setCoverImg] = useState(null);
@@ -22,8 +24,14 @@ const ProfilePage = () => {
 	const coverImgRef = useRef(null);
 	const profileImgRef = useRef(null);
 	const {username}=useParams();
+	const {follow,isPending}=useFollow();
+	const queryClient=new QueryClient();
 
-	const isMyProfile = true;
+	const {data:authUser}=useQuery({
+		queryKey:["authUser"]
+	})
+
+	
 
 	const {data:user,isLoading,refetch,isRefetching}=useQuery({
 		queryKey:["userProfile"],
@@ -42,6 +50,7 @@ const ProfilePage = () => {
 		refetch();
 	},[username,refetch,feedType])
 
+
 	const handleImgChange = (e, state) => {
 		const file = e.target.files[0];
 		if (file) {
@@ -53,8 +62,34 @@ const ProfilePage = () => {
 			reader.readAsDataURL(file);
 		}
 	};
+	const {mutate:updateProfile,isPending:isUpdatingProfile}=useMutation({
+		mutationFn: async () => {
+			try {
+				const res=await fetch(`/api/users/update`,{
+					method:"POST",
+					headers :{
+						"Content-Type":"application/json",
+					},
+					body:JSON.stringify({coverImg,profileImg}),
+					
+				})
+				const data=await res.json();
+				if(!res.ok) throw new Error(data.error || "Something went wrong");
+				return data;
+			} catch (error) {
+				throw new Error(error);
+			}
+		},onSuccess:()=>{
+			toast.success("Profile updated successfully");
+			Promise.all([
+				queryClient.invalidateQueries({queryKey:["authUser"]}),
+				queryClient.invalidateQueries({queryKey:["userProfile"]})
+			])
+		}
+	})
+		const isMyProfile = authUser?._id===user?._id;
 		const memberSinceDate=formatMemberSinceDate(user?.createdAt);
-
+		const amIFollowing=authUser?.following.includes(user?._id);
 
 	return (
 		<>
@@ -120,21 +155,23 @@ const ProfilePage = () => {
 								</div>
 							</div>
 							<div className='flex justify-end px-4 mt-5'>
-								{isMyProfile && <EditProfileModal />}
+								{isMyProfile && <EditProfileModal authUser={authUser}/>}
 								{!isMyProfile && (
 									<button
 										className='btn btn-outline rounded-full btn-sm'
-										onClick={() => alert("Followed successfully")}
+										onClick={() => follow(user?._id)}
 									>
-										Follow
+										{isPending && "Loading..."}
+										{!isPending && amIFollowing && "Unfollow" }
+										{!isPending && !amIFollowing && "Follow"}
 									</button>
 								)}
 								{(coverImg || profileImg) && (
 									<button
 										className='btn btn-primary rounded-full btn-sm text-white px-4 ml-2'
-										onClick={() => alert("Profile updated successfully")}
+										onClick={() => 	updateProfile()}
 									>
-										Update
+										{isUpdatingProfile ? "Updating..." : "Update"}
 									</button>
 								)}
 							</div>
@@ -179,24 +216,30 @@ const ProfilePage = () => {
 								</div>
 							</div>
 							<div className='flex w-full border-b border-gray-700 mt-4'>
-								<div
-									className='flex justify-center flex-1 p-3 hover:bg-secondary transition duration-300 relative cursor-pointer'
-									onClick={() => setFeedType("posts")}
-								>
-									Posts
-									{feedType === "posts" && (
-										<div className='absolute bottom-0 w-10 h-1 rounded-full bg-primary' />
-									)}
-								</div>
-								<div
-									className='flex justify-center flex-1 p-3 text-slate-500 hover:bg-secondary transition duration-300 relative cursor-pointer'
-									onClick={() => setFeedType("likes")}
-								>
-									Likes
-									{feedType === "likes" && (
-										<div className='absolute bottom-0 w-10  h-1 rounded-full bg-primary' />
-									)}
-								</div>
+								<div className="flex w-full border-b border-gray-700">
+  <div
+    className={`flex justify-center flex-1 p-3 cursor-pointer relative transition duration-300
+    ${feedType === "posts" ? "text-primary font-semibold" : "text-gray-400 hover:bg-gray-800"}`}
+    onClick={() => setFeedType("posts")}
+  >
+    Posts
+    {feedType === "posts" && (
+      <div className="absolute bottom-0 h-1 w-10 bg-primary rounded-full"></div>
+    )}
+  </div>
+
+  <div
+    className={`flex justify-center flex-1 p-3 cursor-pointer relative transition duration-300
+    ${feedType === "likes" ? "text-primary font-semibold" : "text-gray-400 hover:bg-gray-800"}`}
+    onClick={() => setFeedType("likes")}
+  >
+    Likes
+    {feedType === "likes" && (
+      <div className="absolute bottom-0 h-1 w-10 bg-primary rounded-full"></div>
+    )}
+  </div>
+</div>
+
 							</div>
 						</>
 					)}
