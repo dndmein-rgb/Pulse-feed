@@ -1,4 +1,4 @@
-import React ,{  useEffect, useRef, useState } from "react";
+import React,{ useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 
 import Posts from "../../components/common/Posts";
@@ -11,10 +11,11 @@ import { FaArrowLeft } from "react-icons/fa6";
 import { IoCalendarOutline } from "react-icons/io5";
 import { FaLink } from "react-icons/fa";
 import { MdEdit } from "react-icons/md";
-import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { formatMemberSinceDate } from "../../utils/date";
-import  useFollow from "../../hooks/useFollow";
-import toast from "react-hot-toast";
+
+import useFollow from "../../hooks/useFollow";
+import useUpdateUserProfile from "../../hooks/useUpdateUserProfile";
 
 const ProfilePage = () => {
 	const [coverImg, setCoverImg] = useState(null);
@@ -23,33 +24,38 @@ const ProfilePage = () => {
 
 	const coverImgRef = useRef(null);
 	const profileImgRef = useRef(null);
-	const {username}=useParams();
-	const {follow,isPending}=useFollow();
-	const queryClient=new QueryClient();
 
-	const {data:authUser}=useQuery({
-		queryKey:["authUser"]
-	})
+	const { username } = useParams();
 
-	
+	const { follow, isPending } = useFollow();
+	const { data: authUser } = useQuery({ queryKey: ["authUser"] });
 
-	const {data:user,isLoading,refetch,isRefetching}=useQuery({
-		queryKey:["userProfile"],
-		queryFn:async ()=>{
+	const {
+		data: user,
+		isLoading,
+		refetch,
+		isRefetching,
+	} = useQuery({
+		queryKey: ["userProfile"],
+		queryFn: async () => {
 			try {
-				const res=await fetch(`/api/users/profile/${username}`);
-			const data=await res.json();
-			if(!res.ok) throw new Error(data.error || "Something went wrong");
-			return data;
+				const res = await fetch(`/api/users/profile/${username}`);
+				const data = await res.json();
+				if (!res.ok) {
+					throw new Error(data.error || "Something went wrong");
+				}
+				return data;
 			} catch (error) {
 				throw new Error(error);
 			}
-		}
-	})
-	useEffect(()=>{
-		refetch();
-	},[username,refetch,feedType])
+		},
+	});
 
+	const { isUpdatingProfile, updateProfile } = useUpdateUserProfile();
+
+	const isMyProfile = authUser._id === user?._id;
+	const memberSinceDate = formatMemberSinceDate(user?.createdAt);
+	const amIFollowing = authUser?.following.includes(user?._id);
 
 	const handleImgChange = (e, state) => {
 		const file = e.target.files[0];
@@ -62,40 +68,16 @@ const ProfilePage = () => {
 			reader.readAsDataURL(file);
 		}
 	};
-	const {mutate:updateProfile,isPending:isUpdatingProfile}=useMutation({
-		mutationFn: async () => {
-			try {
-				const res=await fetch(`/api/users/update`,{
-					method:"POST",
-					headers :{
-						"Content-Type":"application/json",
-					},
-					body:JSON.stringify({coverImg,profileImg}),
-					
-				})
-				const data=await res.json();
-				if(!res.ok) throw new Error(data.error || "Something went wrong");
-				return data;
-			} catch (error) {
-				throw new Error(error);
-			}
-		},onSuccess:()=>{
-			toast.success("Profile updated successfully");
-			Promise.all([
-				queryClient.invalidateQueries({queryKey:["authUser"]}),
-				queryClient.invalidateQueries({queryKey:["userProfile"]})
-			])
-		}
-	})
-		const isMyProfile = authUser?._id===user?._id;
-		const memberSinceDate=formatMemberSinceDate(user?.createdAt);
-		const amIFollowing=authUser?.following.includes(user?._id);
+
+	useEffect(() => {
+		refetch();
+	}, [username, refetch]);
 
 	return (
 		<>
 			<div className='flex-[4_4_0]  border-r border-gray-700 min-h-screen '>
 				{/* HEADER */}
-				{(isLoading ||isRefetching) && <ProfileHeaderSkeleton />}
+				{(isLoading || isRefetching) && <ProfileHeaderSkeleton />}
 				{!isLoading && !isRefetching && !user && <p className='text-center text-lg mt-4'>User not found</p>}
 				<div className='flex flex-col'>
 					{!isLoading && !isRefetching && user && (
@@ -128,14 +110,14 @@ const ProfilePage = () => {
 								<input
 									type='file'
 									hidden
-									accept="image/*"
+									accept='image/*'
 									ref={coverImgRef}
 									onChange={(e) => handleImgChange(e, "coverImg")}
 								/>
 								<input
 									type='file'
 									hidden
-									accept="image/*"
+									accept='image/*'
 									ref={profileImgRef}
 									onChange={(e) => handleImgChange(e, "profileImg")}
 								/>
@@ -155,21 +137,25 @@ const ProfilePage = () => {
 								</div>
 							</div>
 							<div className='flex justify-end px-4 mt-5'>
-								{isMyProfile && <EditProfileModal authUser={authUser}/>}
+								{isMyProfile && <EditProfileModal authUser={authUser} />}
 								{!isMyProfile && (
 									<button
 										className='btn btn-outline rounded-full btn-sm'
 										onClick={() => follow(user?._id)}
 									>
 										{isPending && "Loading..."}
-										{!isPending && amIFollowing && "Unfollow" }
+										{!isPending && amIFollowing && "Unfollow"}
 										{!isPending && !amIFollowing && "Follow"}
 									</button>
 								)}
 								{(coverImg || profileImg) && (
 									<button
 										className='btn btn-primary rounded-full btn-sm text-white px-4 ml-2'
-										onClick={() => 	updateProfile()}
+										onClick={async () => {
+											await updateProfile({ coverImg, profileImg });
+											setProfileImg(null);
+											setCoverImg(null);
+										}}
 									>
 										{isUpdatingProfile ? "Updating..." : "Update"}
 									</button>
@@ -194,14 +180,15 @@ const ProfilePage = () => {
 													rel='noreferrer'
 													className='text-sm text-blue-500 hover:underline'
 												>
-													youtube.com/@asaprogrammer_
+													{/* Updated this after recording the video. I forgot to update this while recording, sorry, thx. */}
+													{user?.link}
 												</a>
 											</>
 										</div>
 									)}
 									<div className='flex gap-2 items-center'>
 										<IoCalendarOutline className='w-4 h-4 text-slate-500' />
-										<span className='text-sm text-slate-500'> {memberSinceDate}</span>
+										<span className='text-sm text-slate-500'>{memberSinceDate}</span>
 									</div>
 								</div>
 								<div className='flex gap-2'>
@@ -216,35 +203,29 @@ const ProfilePage = () => {
 								</div>
 							</div>
 							<div className='flex w-full border-b border-gray-700 mt-4'>
-								<div className="flex w-full border-b border-gray-700">
-  <div
-    className={`flex justify-center flex-1 p-3 cursor-pointer relative transition duration-300
-    ${feedType === "posts" ? "text-primary font-semibold" : "text-gray-400 hover:bg-gray-800"}`}
-    onClick={() => setFeedType("posts")}
-  >
-    Posts
-    {feedType === "posts" && (
-      <div className="absolute bottom-0 h-1 w-10 bg-primary rounded-full"></div>
-    )}
-  </div>
-
-  <div
-    className={`flex justify-center flex-1 p-3 cursor-pointer relative transition duration-300
-    ${feedType === "likes" ? "text-primary font-semibold" : "text-gray-400 hover:bg-gray-800"}`}
-    onClick={() => setFeedType("likes")}
-  >
-    Likes
-    {feedType === "likes" && (
-      <div className="absolute bottom-0 h-1 w-10 bg-primary rounded-full"></div>
-    )}
-  </div>
-</div>
-
+								<div
+									className='flex justify-center flex-1 p-3 hover:bg-secondary transition duration-300 relative cursor-pointer'
+									onClick={() => setFeedType("posts")}
+								>
+									Posts
+									{feedType === "posts" && (
+										<div className='absolute bottom-0 w-10 h-1 rounded-full bg-primary' />
+									)}
+								</div>
+								<div
+									className='flex justify-center flex-1 p-3 text-slate-500 hover:bg-secondary transition duration-300 relative cursor-pointer'
+									onClick={() => setFeedType("likes")}
+								>
+									Likes
+									{feedType === "likes" && (
+										<div className='absolute bottom-0 w-10  h-1 rounded-full bg-primary' />
+									)}
+								</div>
 							</div>
 						</>
 					)}
 
-					<Posts feedType={feedType} username={username} userId={user?._id}/>
+					<Posts feedType={feedType} username={username} userId={user?._id} />
 				</div>
 			</div>
 		</>
