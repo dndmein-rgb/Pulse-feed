@@ -55,7 +55,7 @@ export const signUp = async (req, res) => {
     }
 };
 
-export const login = async (req, res) => {
+export const login = async (req, res) => { 
   try {
     const { username, password } = req.body;
 
@@ -70,7 +70,7 @@ export const login = async (req, res) => {
     }
 
     generateTokenAndSetCookie(user._id, res);
-
+ 
     return res.status(200).json({
       id: user._id,
       username: user.username,
@@ -105,3 +105,5 @@ export const getMe = async (req, res) => {
 		res.status(500).json({ error: "Internal Server Error" });
 	}
 };
+
+ 
