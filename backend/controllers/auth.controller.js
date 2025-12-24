@@ -9,21 +9,21 @@ export const signUp = async (req, res) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
         if (!emailRegex.test(email)) {
-            return res.status(400).json({ message: "Invalid email format" });
+            return res.status(400).json({ error: "Invalid email format" });
         }
 
         const existingUser = await User.findOne({ username });
         if (existingUser) {
-            return res.status(400).json({ message: "Username already taken" });
+            return res.status(400).json({ error: "Username already taken" });
         }
 
         const existingEmail = await User.findOne({ email });
         if (existingEmail) {
-            return res.status(400).json({ message: "Email already taken" });
+            return res.status(400).json({ error: "Email already taken" });
         }
 
         if (password.length < 6) {
-            return res.status(400).json({ message: "Password must be at least 6 characters" });
+            return res.status(400).json({ error: "Password must be at least 6 characters" });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -51,7 +51,7 @@ export const signUp = async (req, res) => {
 
     } catch (error) {
         console.log("Error in signUp:", error);
-        return res.status(500).json({ message: "Server error" });
+        return res.status(500).json({ error: "Server error" });
     }
 };
 
@@ -84,7 +84,7 @@ export const login = async (req, res) => {
 
   } catch (error) {
     console.log("Error in login:", error);
-    return res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ error: "Server error" });
   }
 };
 export const logout = async (req, res) => {
@@ -93,7 +93,7 @@ export const logout = async (req, res) => {
         return res.status(200).json({ message: "Logout successful" });
     } catch (error) {
         console.log("Error in logout:", error);
-        return res.status(500).json({ message: "Server error" });
+        return res.status(500).json({ error: "Server error" });
     }
 };
 export const getMe = async (req, res) => {
