@@ -1,2 +1,2 @@
-export { default as XSvg } from './X.jsx';
-export { default as PSvg } from './P.jsx';
+export { default as XSvg } from './x.jsx';
+export { default as PSvg } from './p.jsx';
